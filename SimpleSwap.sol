@@ -307,8 +307,10 @@ contract SimpleSwap is ERC20, Ownable {
         // Update reserves
         updateReserves(tokenIn, tokenOut, reserveIn + amountIn, reserveOut - amountOut);
 
+        amounts = new uint[](2) ;
         amounts[0] = amountIn;
         amounts[1] = amountOut;
+        return amounts;
     }
 
     /// @notice Computes the integer square root of a given number
