@@ -52,7 +52,6 @@ contract SimpleSwap is ERC20, Ownable {
     }
 
     /// @notice Mints LP tokens to a specified address
-    /// @dev Only callable by the owner
     /// @param to Address receiving the minted tokens
     /// @param amount Amount of tokens to mint
     function mint(address to, uint256 amount) private {

@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.27;
 
-import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
+import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
 /// @title ETHKIPU MOD 3 - SimpleSwap 
 /// @author Gaston Gorosito
@@ -52,7 +52,6 @@ contract SimpleSwap is ERC20, Ownable {
     }
 
     /// @notice Mints LP tokens to a specified address
-    /// @dev Only callable by the owner
     /// @param to Address receiving the minted tokens
     /// @param amount Amount of tokens to mint
     function mint(address to, uint256 amount) private {
@@ -254,16 +253,18 @@ contract SimpleSwap is ERC20, Ownable {
     }
 
     /// @notice Calculates how many tokens will be received for a given input amount
+    /// @param tokenIn Address of input token
+    /// @param tokenOut Address of output token
     /// @param amountIn Amount of input token
-    /// @param reserveIn Reserve of input token in the pool
-    /// @param reserveOut Reserve of output token in the pool
     /// @return amountOut Calculated amount of output token to receive
     function getAmountOut(
-        uint amountIn,
-        uint reserveIn,
-        uint reserveOut
-    ) external pure returns (uint amountOut) {
+        address tokenIn,
+        address tokenOut,
+        uint amountIn
+    ) external view returns (uint amountOut) {
         require(amountIn > 0, "Amount must be > 0");
+
+        (uint reserveIn, uint reserveOut) = getReserves(tokenIn, tokenOut);
         require(reserveIn > 0 && reserveOut > 0, "Invalid reserves");
 
         // Formula: amountOut = (amountIn * reserveB) / (reserveA + amountIn)
@@ -287,24 +288,18 @@ contract SimpleSwap is ERC20, Ownable {
         require(block.timestamp <= deadline, "Deadline expired");
         require(path.length == 2, "Only 1-step swaps supported");
 
-        address tokenIn  = path[0];
+        address tokenIn = path[0];
         address tokenOut = path[1];
 
-        // Get token reserves
         (uint reserveIn, uint reserveOut) = getReserves(tokenIn, tokenOut);
         require(reserveIn > 0 && reserveOut > 0, "No liquidity");
 
-        // Calculate output
-        uint amountOut = this.getAmountOut(amountIn, reserveIn, reserveOut);
+        uint amountOut = this.getAmountOut(tokenIn, tokenOut, amountIn);
         require(amountOut >= amountOutMin, "Insufficient output amount");
 
-        // Transfer tokens from user to pool
         ERC20(tokenIn).transferFrom(msg.sender, address(this), amountIn);
-
-        // Transfer tokens from pool to user
         ERC20(tokenOut).transfer(to, amountOut);
 
-        // Update reserves
         updateReserves(tokenIn, tokenOut, reserveIn + amountIn, reserveOut - amountOut);
 
         amounts = new uint[](2) ;
