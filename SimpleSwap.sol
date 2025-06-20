@@ -45,18 +45,28 @@ contract SimpleSwap is ERC20, Ownable {
     /// @return reserveA Reserve amount for tokenA
     /// @return reserveB Reserve amount for tokenB
     function getReserves(address tokenA, address tokenB) public view returns (uint reserveA, uint reserveB) {
-        (address token0, address token1) = sortTokens(tokenA, tokenB);
-        Reserve memory r = reserves[token0][token1];
-
-        (reserveA, reserveB) = tokenA == token0 ? (r.reserve0, r.reserve1) : (r.reserve1, r.reserve0);
+        (, , , reserveA, reserveB) = _getReservesSorted(tokenA, tokenB);
     }
 
-    /// @notice Mints LP tokens to a specified address
-    /// @param to Address receiving the minted tokens
-    /// @param amount Amount of tokens to mint
-    function mint(address to, uint256 amount) private {
-        _mint(to, amount);
+
+    function _getReservesSorted(
+        address tokenA,
+        address tokenB
+    ) internal view returns (
+        address token0,
+        address token1,
+        Reserve storage r,
+        uint reserveA,
+        uint reserveB
+    ) {
+        (token0, token1) = sortTokens(tokenA, tokenB);
+        r = reserves[token0][token1];
+
+        (reserveA, reserveB) = tokenA == token0
+            ? (r.reserve0, r.reserve1)
+            : (r.reserve1, r.reserve0);
     }
+
 
     /// @notice Adds liquidity to a given token pair
     /// @dev Transfers tokens from sender, calculates optimal amounts, and mints LP tokens
@@ -82,7 +92,7 @@ contract SimpleSwap is ERC20, Ownable {
         uint deadline
     ) external returns (uint amountA, uint amountB, uint liquidity) {
         require(block.timestamp <= deadline, "Deadline expired");
-        (uint reserveA, uint reserveB) = getReserves(tokenA, tokenB);
+        ( , , , uint reserveA, uint reserveB) = _getReservesSorted(tokenA, tokenB);
     
         (amountA, amountB) = _computeLiquidityAmounts(
             reserveA,
@@ -94,8 +104,8 @@ contract SimpleSwap is ERC20, Ownable {
         );
 
         // Transfer tokens from sender to this contract
-        ERC20(tokenA).transferFrom(msg.sender, address(this), amountA);
-        ERC20(tokenB).transferFrom(msg.sender, address(this), amountB);
+        IERC20(tokenA).transferFrom(msg.sender, address(this), amountA);
+        IERC20(tokenB).transferFrom(msg.sender, address(this), amountB);
 
         // Mint LP tokens to provider
         liquidity = calculateLiquidity(amountA, amountB, reserveA, reserveB);
@@ -155,15 +165,15 @@ contract SimpleSwap is ERC20, Ownable {
     /// @param newReserveA New amount of tokenA in the pool
     /// @param newReserveB New amount of tokenB in the pool
     function updateReserves(address tokenA, address tokenB, uint newReserveA, uint newReserveB) private {
-        (address token0, address token1) = sortTokens(tokenA, tokenB);
-        Reserve storage r = reserves[token0][token1];
+        (address token0, , Reserve storage r, , ) = _getReservesSorted(tokenA, tokenB);
 
+        // Check if values differ to save gas from writting in storage
         if (tokenA == token0) {
-            r.reserve0 = newReserveA;
-            r.reserve1 = newReserveB;
+            if (r.reserve0 != newReserveA) r.reserve0 = newReserveA;
+            if (r.reserve1 != newReserveB) r.reserve1 = newReserveB;
         } else {
-            r.reserve0 = newReserveB;
-            r.reserve1 = newReserveA;
+            if (r.reserve0 != newReserveB) r.reserve0 = newReserveB;
+            if (r.reserve1 != newReserveA) r.reserve1 = newReserveA;
         }
     }
 
@@ -220,7 +230,7 @@ contract SimpleSwap is ERC20, Ownable {
         require(block.timestamp <= deadline, "Deadline expired");
         uint _totalSupply = totalSupply();
 
-        (uint reserveA, uint reserveB) = getReserves(tokenA, tokenB);
+        ( , , , uint reserveA, uint reserveB) = _getReservesSorted(tokenA, tokenB);
         // Calculate amount of A & B tokens based on provided liquidity
         amountA = liquidity * reserveA / _totalSupply;
         amountB = liquidity * reserveB / _totalSupply;
@@ -233,8 +243,8 @@ contract SimpleSwap is ERC20, Ownable {
         _burn(msg.sender, liquidity);
 
         // Transfer original tokens to the 'to' address
-        ERC20(tokenA).transfer(to, amountA);
-        ERC20(tokenB).transfer(to, amountB);
+        IERC20(tokenA).transfer(to, amountA);
+        IERC20(tokenB).transfer(to, amountB);
 
         // Update reserves accordingly
         updateReserves(tokenA, tokenB, reserveA - amountA, reserveB - amountB);
@@ -245,7 +255,7 @@ contract SimpleSwap is ERC20, Ownable {
     /// @param tokenB Address of the second token
     /// @return price token A value expressed in terms of token B
     function getPrice(address tokenA, address tokenB) external view returns (uint price) {
-        (uint reserveA, uint reserveB) = getReserves(tokenA, tokenB);
+        (, , , uint reserveA, uint reserveB) = _getReservesSorted(tokenA, tokenB);
         require(reserveA > 0, "No liquidity for tokenA");
 
         // Price of token A in terms of token B (i.e., how many B per 1 A)
@@ -262,6 +272,11 @@ contract SimpleSwap is ERC20, Ownable {
         uint reserveIn,
         uint reserveOut
     ) external pure returns (uint amountOut) {
+        amountOut = _getAmountOut(amountIn, reserveIn, reserveOut);
+    }
+    
+    /// @notice getAmountOut internal wrapper to reduce gas for internal calls
+    function _getAmountOut(uint amountIn, uint reserveIn, uint reserveOut) internal pure returns (uint amountOut) {
         require(amountIn > 0, "Amount must be > 0");
         require(reserveIn > 0 && reserveOut > 0, "Invalid reserves");
 
@@ -290,18 +305,18 @@ contract SimpleSwap is ERC20, Ownable {
         address tokenOut = path[1];
 
         // Get token reserves
-        (uint reserveIn, uint reserveOut) = getReserves(tokenIn, tokenOut);
+        ( , , , uint reserveIn, uint reserveOut) = _getReservesSorted(tokenIn, tokenOut);
         require(reserveIn > 0 && reserveOut > 0, "No liquidity");
 
         // Calculate output
-        uint amountOut = this.getAmountOut(amountIn, reserveIn, reserveOut);
+        uint amountOut = _getAmountOut(amountIn, reserveIn, reserveOut);
         require(amountOut >= amountOutMin, "Insufficient output amount");
 
         // Transfer tokens from user to pool
-        ERC20(tokenIn).transferFrom(msg.sender, address(this), amountIn);
+        IERC20(tokenIn).transferFrom(msg.sender, address(this), amountIn);
 
         // Transfer tokens from pool to user
-        ERC20(tokenOut).transfer(to, amountOut);
+        IERC20(tokenOut).transfer(to, amountOut);
 
         // Update reserves
         updateReserves(tokenIn, tokenOut, reserveIn + amountIn, reserveOut - amountOut);
