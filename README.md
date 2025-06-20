@@ -23,12 +23,12 @@ A minimal decentralized exchange (DEX) smart contract for swapping ERC20 token p
 
 | Component      | Address |
 |----------------|---------|
-| SimpleSwap     | [`0x11D6b705Da2c4Be5AdaFBC2AbaC95bC8c9bb539F`](https://sepolia.etherscan.io/address/0x11D6b705Da2c4Be5AdaFBC2AbaC95bC8c9bb539F) |
+| SimpleSwap     | [`0x92DDE44a13729C5D3F47dE497E990088A7D20AFD`](https://sepolia.etherscan.io/address/0x92DDE44a13729C5D3F47dE497E990088A7D20AFD) |
 | Token A (ERC20)| [`0x8d25C5307A3D5A1f5caef06EbA440C3c4a0bde2E`](https://sepolia.etherscan.io/address/0x8d25C5307A3D5A1f5caef06EbA440C3c4a0bde2E) |
 | Token B (ERC20)| [`0xf98D3CF8Cd25748937Ca879C9dAe8a8F313C9A12`](https://sepolia.etherscan.io/address/0xf98D3CF8Cd25748937Ca879C9dAe8a8F313C9A12) |
 
 ✅ **Verified on Sepolia using verification contract:**  
-[Verification successful on Etherscan](https://sepolia.etherscan.io/tx/0x58f2bbd2352c00693bbb35266c60d3d4825bbb054d369875681281c9b15403e8)
+[Verification successful on Etherscan](https://sepolia.etherscan.io/tx/0xc61e375fe9373cd23fc053fb03e0acff88ff204cfa2a7036fa582ca13fb8d8a8)
 
 ## 📁 File Structure
 
