@@ -44,7 +44,7 @@ A minimal decentralized exchange (DEX) smart contract for swapping ERC20 token p
 | `removeLiquidity(...)` | Burns LP tokens and returns proportional token amounts |
 | `swapExactTokensForTokens(...)` | Swaps an exact input amount for as many output tokens as possible |
 | `getPrice(...)` | Returns price of one token in terms of the other |
-| `_computeLiquidityAmounts(...)` | Internal logic to calculate optimal liquidity ratios |
+| `getAmountOut(...)` | Calculates token output on exchanges |
 
 ## 📌 Notes
 
