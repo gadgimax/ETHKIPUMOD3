@@ -167,11 +167,11 @@ contract SimpleSwap is ERC20, Ownable {
 
         // Check if values differ to save gas from writting in storage
         if (tokenA == token0) {
-            r.reserve0 = newReserveA;
-            r.reserve1 = newReserveB;
+            if (r.reserve0 != newReserveA) r.reserve0 = newReserveA;
+            if (r.reserve1 != newReserveB) r.reserve1 = newReserveB;
         } else {
-            r.reserve0 = newReserveB;
-            r.reserve1 = newReserveA;
+            if (r.reserve0 != newReserveB) r.reserve0 = newReserveB;
+            if (r.reserve1 != newReserveA) r.reserve1 = newReserveA;
         }
     }
 
