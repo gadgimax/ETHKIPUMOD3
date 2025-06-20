@@ -48,7 +48,16 @@ contract SimpleSwap is ERC20, Ownable {
         (, , , reserveA, reserveB) = _getReservesSorted(tokenA, tokenB);
     }
 
-
+    /// @notice Helper function to retrieve reserves in canonical order
+    /// @dev Sorts token addresses once and returns the correct reserve mapping and values.
+    /// Optimized to reduce repeated calls to `sortTokens` and mapping lookups.
+    /// @param tokenA One of the two tokens in the pair
+    /// @param tokenB The other token in the pair
+    /// @return token0 The lexicographically smaller token address
+    /// @return token1 The lexicographically larger token address
+    /// @return r Reference to the stored Reserve struct for this token pair
+    /// @return reserveA Reserve corresponding to `tokenA`
+    /// @return reserveB Reserve corresponding to `tokenB`
     function _getReservesSorted(
         address tokenA,
         address tokenB
@@ -66,7 +75,6 @@ contract SimpleSwap is ERC20, Ownable {
             ? (r.reserve0, r.reserve1)
             : (r.reserve1, r.reserve0);
     }
-
 
     /// @notice Adds liquidity to a given token pair
     /// @dev Transfers tokens from sender, calculates optimal amounts, and mints LP tokens
