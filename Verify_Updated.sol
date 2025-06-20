@@ -1,5 +1,6 @@
 /**
- *Submitted for verification at Etherscan.io on 2025-06-17
+This is an updated version of the original verification contract that matches the requested code for ETHKIPUMOD 3, 
+the interface method getAmountOut and it's invocation were updated to match the requested code
 */
 
 // SPDX-License-Identifier: MIT

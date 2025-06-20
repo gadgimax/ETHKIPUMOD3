@@ -1,3 +1,8 @@
+/**
+This is another version of the DEX contract that succesfully can call the verify function of the initial verification contract
+This implements function getAmountOut(address tokenIn, address tokenOut, uint amountIn)
+*/
+
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.27;
 
