@@ -50,6 +50,8 @@ A minimal decentralized exchange (DEX) smart contract for swapping ERC20 token p
 
 - Tokens must be pre-approved before calling `addLiquidity` or `swapExactTokensForTokens`.
 - This contract does not charge any fees and is not production-ready.
+- Originally, the verification contract's getAmountOut interface differed from the requested code. To test compatibility, I wrote SimpleSwap_ForVerify.sol, a version of the contract adapted to successfully interact with the original verification function.
+- After verifying functionality, I updated the verification contract to match the requested code exactly. This updated verification contract version is available as Verify_Updated.sol.
 
 ---
 
