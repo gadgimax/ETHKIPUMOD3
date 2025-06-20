@@ -45,32 +45,21 @@ contract SimpleSwap is ERC20, Ownable {
     /// @return reserveA Reserve amount for tokenA
     /// @return reserveB Reserve amount for tokenB
     function getReserves(address tokenA, address tokenB) public view returns (uint reserveA, uint reserveB) {
-        (, , , reserveA, reserveB) = _getReservesSorted(tokenA, tokenB);
+        (reserveA, reserveB) = _getReserves(tokenA, tokenB);
     }
 
-    /// @notice Helper function to retrieve reserves in canonical order
-    /// @dev Sorts token addresses once and returns the correct reserve mapping and values.
-    /// Optimized to reduce repeated calls to `sortTokens` and mapping lookups.
+    /// @notice Retrieve reserves in canonical order
+    /// @dev Sorts token addresses once and returns the correct reserve values.
     /// @param tokenA One of the two tokens in the pair
     /// @param tokenB The other token in the pair
-    /// @return token0 The lexicographically smaller token address
-    /// @return token1 The lexicographically larger token address
-    /// @return r Reference to the stored Reserve struct for this token pair
     /// @return reserveA Reserve corresponding to `tokenA`
     /// @return reserveB Reserve corresponding to `tokenB`
-    function _getReservesSorted(
+    function _getReserves(
         address tokenA,
         address tokenB
-    ) internal view returns (
-        address token0,
-        address token1,
-        Reserve storage r,
-        uint reserveA,
-        uint reserveB
-    ) {
-        (token0, token1) = sortTokens(tokenA, tokenB);
-        r = reserves[token0][token1];
-
+    ) internal view returns (uint reserveA, uint reserveB) {
+        (address token0, address token1) = sortTokens(tokenA, tokenB);
+        Reserve memory r = reserves[token0][token1];
         (reserveA, reserveB) = tokenA == token0
             ? (r.reserve0, r.reserve1)
             : (r.reserve1, r.reserve0);
@@ -100,7 +89,7 @@ contract SimpleSwap is ERC20, Ownable {
         uint deadline
     ) external returns (uint amountA, uint amountB, uint liquidity) {
         require(block.timestamp <= deadline, "Deadline expired");
-        ( , , , uint reserveA, uint reserveB) = _getReservesSorted(tokenA, tokenB);
+        (uint reserveA, uint reserveB) = _getReserves(tokenA, tokenB);
     
         (amountA, amountB) = _computeLiquidityAmounts(
             reserveA,
@@ -173,15 +162,16 @@ contract SimpleSwap is ERC20, Ownable {
     /// @param newReserveA New amount of tokenA in the pool
     /// @param newReserveB New amount of tokenB in the pool
     function updateReserves(address tokenA, address tokenB, uint newReserveA, uint newReserveB) private {
-        (address token0, , Reserve storage r, , ) = _getReservesSorted(tokenA, tokenB);
+        (address token0, address token1) = sortTokens(tokenA, tokenB);
+        Reserve storage r = reserves[token0][token1];
 
         // Check if values differ to save gas from writting in storage
         if (tokenA == token0) {
-            if (r.reserve0 != newReserveA) r.reserve0 = newReserveA;
-            if (r.reserve1 != newReserveB) r.reserve1 = newReserveB;
+            r.reserve0 = newReserveA;
+            r.reserve1 = newReserveB;
         } else {
-            if (r.reserve0 != newReserveB) r.reserve0 = newReserveB;
-            if (r.reserve1 != newReserveA) r.reserve1 = newReserveA;
+            r.reserve0 = newReserveB;
+            r.reserve1 = newReserveA;
         }
     }
 
@@ -238,7 +228,7 @@ contract SimpleSwap is ERC20, Ownable {
         require(block.timestamp <= deadline, "Deadline expired");
         uint _totalSupply = totalSupply();
 
-        ( , , , uint reserveA, uint reserveB) = _getReservesSorted(tokenA, tokenB);
+        (uint reserveA, uint reserveB) = _getReserves(tokenA, tokenB);
         // Calculate amount of A & B tokens based on provided liquidity
         amountA = liquidity * reserveA / _totalSupply;
         amountB = liquidity * reserveB / _totalSupply;
@@ -263,7 +253,7 @@ contract SimpleSwap is ERC20, Ownable {
     /// @param tokenB Address of the second token
     /// @return price token A value expressed in terms of token B
     function getPrice(address tokenA, address tokenB) external view returns (uint price) {
-        (, , , uint reserveA, uint reserveB) = _getReservesSorted(tokenA, tokenB);
+        (uint reserveA, uint reserveB) = _getReserves(tokenA, tokenB);
         require(reserveA > 0, "No liquidity for tokenA");
 
         // Price of token A in terms of token B (i.e., how many B per 1 A)
@@ -313,7 +303,7 @@ contract SimpleSwap is ERC20, Ownable {
         address tokenOut = path[1];
 
         // Get token reserves
-        ( , , , uint reserveIn, uint reserveOut) = _getReservesSorted(tokenIn, tokenOut);
+        (uint reserveIn, uint reserveOut) = _getReserves(tokenIn, tokenOut);
         require(reserveIn > 0 && reserveOut > 0, "No liquidity");
 
         // Calculate output
