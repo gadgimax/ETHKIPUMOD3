@@ -38,8 +38,6 @@ A minimal decentralized exchange (DEX) smart contract for swapping ERC20 token p
 
 ## 📚 Key Functions
 
-## 📚 Key Functions
-
 ### `addLiquidity(...)`
 
 Adds tokens to the pool and mints LP tokens proportionally.
