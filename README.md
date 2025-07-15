@@ -119,9 +119,55 @@ Calculates the output amount given an input amount and pool reserves.
 **Returns:**
 - `uint amountOut` — Amount of output token received  
 
+# 📘 Contract Events
 
+This contract emits events for all major interactions so frontends, indexers, and external systems can listen and react to DEX operations in real time.
 
-## 📌 Notes
+---
+
+### `LiquidityAdded(...)`
+
+Emitted when a user adds liquidity to the pool and receives LP tokens.
+
+**Inputs:**
+- `address provider` Address that added the liquidity  
+- `address tokenA` Address of token A  
+- `address tokenB` Address of token B  
+- `uint amountA` Actual amount of token A supplied  
+- `uint amountB` Actual amount of token B supplied  
+- `uint liquidity` Amount of LP tokens minted  
+
+---
+
+### `LiquidityRemoved(...)`
+
+Emitted when a user removes liquidity and burns LP tokens.
+
+**Inputs:**
+- `address provider` Address that removed the liquidity  
+- `address tokenA` Address of token A  
+- `address tokenB` Address of token B  
+- `uint amountA` Amount of token A returned  
+- `uint amountB` Amount of token B returned  
+- `uint liquidityBurned` LP tokens burned  
+
+---
+
+### `Swap(...)`
+
+Emitted when a user swaps one token for another.
+
+**Inputs:**
+- `address sender` Address initiating the swap  
+- `address tokenIn` Token being sold  
+- `address tokenOut` Token being bought  
+- `uint amountIn` Input token amount  
+- `uint amountOut` Output token amount received  
+- `address to` Address that received the output token  
+
+---
+
+## Notes
 
 - Tokens must be pre-approved before calling `addLiquidity` or `swapExactTokensForTokens`.
 - This contract does not charge any fees and is not production-ready.
