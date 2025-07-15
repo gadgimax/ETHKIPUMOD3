@@ -27,6 +27,56 @@ contract SimpleSwap is ERC20, Ownable {
         Ownable(initialOwner)
     {}
 
+    /// @notice Emitted when a user adds liquidity to a token pair
+    /// @param provider Address of the liquidity provider
+    /// @param tokenA Address of token A
+    /// @param tokenB Address of token B
+    /// @param amountA Amount of token A provided
+    /// @param amountB Amount of token B provided
+    /// @param liquidity Amount of LP tokens minted
+    event LiquidityAdded(
+        address indexed provider,
+        address indexed tokenA,
+        address indexed tokenB,
+        uint amountA,
+        uint amountB,
+        uint liquidity
+    );
+
+    /// @notice Emitted when a user removes liquidity from a token pair
+    /// @param provider Address of the liquidity provider
+    /// @param tokenA Address of token A
+    /// @param tokenB Address of token B
+    /// @param amountA Amount of token A returned
+    /// @param amountB Amount of token B returned
+    /// @param liquidityBurned Amount of LP tokens burned
+    event LiquidityRemoved(
+        address indexed provider,
+        address indexed tokenA,
+        address indexed tokenB,
+        uint amountA,
+        uint amountB,
+        uint liquidityBurned
+    );
+
+    /// @notice Emitted when a swap is executed between two tokens
+    /// @param sender Address of the user initiating the swap
+    /// @param tokenIn Address of the input token
+    /// @param tokenOut Address of the output token
+    /// @param amountIn Amount of input token sent
+    /// @param amountOut Amount of output token received
+    /// @param to Recipient address of the output token
+    event Swap(
+        address indexed sender,
+        address indexed tokenIn,
+        address indexed tokenOut,
+        uint amountIn,
+        uint amountOut,
+        address to
+    );
+
+
+
     /// @notice Sorts two token addresses to maintain canonical order (token0 < token1)
     /// @dev Ensures consistent ordering for storage and lookup; prevents duplicate entries like (A,B) and (B,A)
     /// @param tokenA First token
@@ -59,10 +109,10 @@ contract SimpleSwap is ERC20, Ownable {
         address tokenB
     ) internal view returns (uint reserveA, uint reserveB) {
         (address token0, address token1) = sortTokens(tokenA, tokenB);
-        Reserve memory r = reserves[token0][token1];
+        Reserve memory reserve = reserves[token0][token1];
         (reserveA, reserveB) = tokenA == token0
-            ? (r.reserve0, r.reserve1)
-            : (r.reserve1, r.reserve0);
+            ? (reserve.reserve0, reserve.reserve1)
+            : (reserve.reserve1, reserve.reserve0);
     }
 
     /// @notice Adds liquidity to a given token pair
@@ -89,8 +139,10 @@ contract SimpleSwap is ERC20, Ownable {
         uint deadline
     ) external returns (uint amountA, uint amountB, uint liquidity) {
         require(block.timestamp <= deadline, "Deadline expired");
+        address sender = msg.sender;
+        address contractAddress = address(this);
         (uint reserveA, uint reserveB) = _getReserves(tokenA, tokenB);
-    
+
         (amountA, amountB) = _computeLiquidityAmounts(
             reserveA,
             reserveB,
@@ -101,8 +153,8 @@ contract SimpleSwap is ERC20, Ownable {
         );
 
         // Transfer tokens from sender to this contract
-        IERC20(tokenA).transferFrom(msg.sender, address(this), amountA);
-        IERC20(tokenB).transferFrom(msg.sender, address(this), amountB);
+        IERC20(tokenA).transferFrom(sender, contractAddress, amountA);
+        IERC20(tokenB).transferFrom(sender, contractAddress, amountB);
 
         // Mint LP tokens to provider
         liquidity = calculateLiquidity(amountA, amountB, reserveA, reserveB);
@@ -110,6 +162,9 @@ contract SimpleSwap is ERC20, Ownable {
 
         // Update pool reserves
         updateReserves(tokenA, tokenB, reserveA + amountA, reserveB + amountB);
+
+        // Emit Liquidity Added event
+        emit LiquidityAdded(sender, tokenA, tokenB, amountA, amountB, liquidity);
 
     }
 
@@ -163,15 +218,15 @@ contract SimpleSwap is ERC20, Ownable {
     /// @param newReserveB New amount of tokenB in the pool
     function updateReserves(address tokenA, address tokenB, uint newReserveA, uint newReserveB) private {
         (address token0, address token1) = sortTokens(tokenA, tokenB);
-        Reserve storage r = reserves[token0][token1];
+        Reserve storage reserve = reserves[token0][token1];
 
         // Check if values differ to save gas from writting in storage
         if (tokenA == token0) {
-            if (r.reserve0 != newReserveA) r.reserve0 = newReserveA;
-            if (r.reserve1 != newReserveB) r.reserve1 = newReserveB;
+            if (reserve.reserve0 != newReserveA) reserve.reserve0 = newReserveA;
+            if (reserve.reserve1 != newReserveB) reserve.reserve1 = newReserveB;
         } else {
-            if (r.reserve0 != newReserveB) r.reserve0 = newReserveB;
-            if (r.reserve1 != newReserveA) r.reserve1 = newReserveA;
+            if (reserve.reserve0 != newReserveB) reserve.reserve0 = newReserveB;
+            if (reserve.reserve1 != newReserveA) reserve.reserve1 = newReserveA;
         }
     }
 
@@ -246,6 +301,9 @@ contract SimpleSwap is ERC20, Ownable {
 
         // Update reserves accordingly
         updateReserves(tokenA, tokenB, reserveA - amountA, reserveB - amountB);
+
+        // Emit Liquidity Removed event
+        emit LiquidityRemoved(msg.sender, tokenA, tokenB, amountA, amountB, liquidity);
     }
 
     /// @notice Calculates the price of token A in terms of token B
@@ -322,6 +380,11 @@ contract SimpleSwap is ERC20, Ownable {
         amounts = new uint[](2) ;
         amounts[0] = amountIn;
         amounts[1] = amountOut;
+
+        // Emit Swap Exchange event
+        emit Swap(msg.sender, tokenIn, tokenOut, amountIn, amountOut, to);
+
+        // Return amounts array with amountIn and amountOut
         return amounts;
     }
 
